@@ -7,8 +7,6 @@ set -x
 [ -e /etc/sysconfig/sbd ] && . /etc/sysconfig/sbd
 [ -e /etc/sysconfig/pcsd ] && . /etc/sysconfig/pcsd
 
-set -e
-
 : ${CLUSTER_NAME="redhat"}
 : ${CLUSTER_PASS="redhat"}
 : ${REMOTE_NODE=0}
@@ -35,7 +33,7 @@ if [ $REMOTE_NODE = 0 ]; then
 	
     elif [ x${BOOTSTRAP_NODE} = x ]; then
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
-	pcs cluster setup ${CLUSTER_NAME} ${NODE_ID}
+	pcs --debug cluster setup ${CLUSTER_NAME} ${NODE_ID}
     
     else
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
