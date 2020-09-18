@@ -4,7 +4,7 @@ USER root
 
 LABEL maintainer="abeekhof@redhat.com"
 
-RUN dnf install -y pcs which passwd chkconfig findutils bind-utils && rm -rf /var/cache/yum
+RUN dnf install -y pcs which passwd chkconfig findutils bind-utils initscripts && rm -rf /var/cache/yum
 
 RUN mkdir -p /etc/systemd/system-preset/
 RUN echo 'enable pcsd.service' > /etc/systemd/system-preset/00-pcsd.preset
