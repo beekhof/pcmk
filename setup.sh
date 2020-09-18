@@ -35,7 +35,7 @@ if [ $REMOTE_NODE = 0 ]; then
 	
     elif [ x${BOOTSTRAP_NODE} = x ]; then
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
-	pcs cluster setup ${CLUSTER_NAME} ${NODE_ID} 
+	pcs cluster setup ${CLUSTER_NAME} ${NODE_ID}
     
     else
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
@@ -50,3 +50,4 @@ if [ $REMOTE_NODE = 0 ]; then
 	cat /etc/corosync/corosync.conf
     fi
 fi
+exit 0
