@@ -46,12 +46,4 @@ if [ $REMOTE_NODE = 0 ]; then
 	fi
 	cat /etc/corosync/corosync.conf
     fi
-
-    /usr/share/corosync/corosync start
-    /usr/sbin/pacemakerd -f
-else
-    # pcs cluster auth ${BOOTSTRAP_NODE} ${NODE_IP} -u hacluster -p ${CLUSTER_PASS} --force
-    # Would be nice if we could run this here:
-    #   pcs resource create pcmk-3 ocf:pacemaker:remote
-    /usr/sbin/pacemaker_remoted 
 fi

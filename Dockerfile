@@ -5,6 +5,11 @@ USER root
 LABEL maintainer="abeekhof@redhat.com"
 
 RUN dnf install -y pcs which passwd chkconfig findutils bind-utils && rm -rf /var/cache/yum
+
+RUN mkdir -p /etc/systemd/system-preset/
+RUN echo 'enable pcsd.service' > /etc/systemd/system-preset/00-pcsd.preset
+RUN systemctl enable pcsd
+
 #RUN dnf install -y lsof && rm -rf /var/cache/yum
 
 #LABEL RUN /usr/bin/docker run -d \$OPT1 --privileged --net=host -p 2224:2224 -v /sys/fs/cgroup:/sys/fs/cgroup -v /etc/localtime:/etc/localtime:ro -v /run/docker.sock:/run/docker.sock -v /usr/bin/docker:/usr/bin/docker:ro --name \$NAME \$IMAGE \$OPT2 \$OPT3
@@ -24,5 +29,5 @@ EXPOSE 5412/udp
 
 ADD *.sh /root/
 
-# CMD ["/usr/lib/systemd/systemd", "--system"]
-ENTRYPOINT /root/loop.sh
+CMD ["/usr/lib/systemd/systemd", "--system"]
+#ENTRYPOINT /root/loop.sh
