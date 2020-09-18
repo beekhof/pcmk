@@ -21,8 +21,8 @@ export GEM_HOME=/usr/lib/pcsd/vendor/bundle/ruby
 
 sleep 5
 
-NODE_ID=$(echo ${HOSTNAME} | sed s/.*-//)
-NODE_IP=$(grep ${HOSTNAME} /etc/hosts | grep -v : | cut -f1)
+NODE_ID=$(echo ${HOSTNAME} | sed s/\\..*//)
+NODE_IP=$(grep ${HOSTNAME} /etc/hosts | grep -v : | cut -f1 | head -n 1)
 
 if [ x$NODE_IP = x ]; then
     # Hope it's resolvable
@@ -35,7 +35,7 @@ if [ $REMOTE_NODE = 0 ]; then
 	
     elif [ x${BOOTSTRAP_NODE} = x ]; then
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
-	pcs cluster setup ${CLUSTER_NAME} ${NODE_ID} --corosync_conf /etc/corosync/corosync.conf
+	pcs cluster setup ${CLUSTER_NAME} ${NODE_ID} 
     
     else
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
