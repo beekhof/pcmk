@@ -21,6 +21,7 @@ nodelist {
 
 quorum {
     provider: corosync_votequorum
+    two_node: 1
 }
 
 logging {
