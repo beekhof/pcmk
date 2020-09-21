@@ -10,12 +10,12 @@ nodelist {
     node {
         nodeid: 1
         name: $NODE1NAME
-#        ring0_addr: $NODE1ADDR
+        ring0_addr: $NODE1ADDR
     }
     node {
         nodeid: 2
         name: $NODE2NAME
-#        ring0_addr: $NODE2ADDR
+        ring0_addr: $NODE2ADDR
     }
 }
 
