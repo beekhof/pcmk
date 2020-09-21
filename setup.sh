@@ -28,6 +28,19 @@ if [ x$NODE_IP = x ]; then
 fi
 
 if [ $REMOTE_NODE = 0 ]; then
+
+    if [ ! -e /etc/corosync/authkey ]; then
+	echo $CLUSTER_AUTHKEY > /etc/corosync/authkey
+	sudo chown root:root /etc/corosync/authkey
+	sudo chmod 400 /etc/corosync/authkey
+    fi
+
+    if [ ! -e /etc/pacemaker/authkey ]; then
+	echo $CLUSTER_AUTHKEY > /etc/pacemaker/authkey
+	sudo chown hacluster:haclient /etc/pacemaker/authkey
+	sudo chmod 640 /etc/pacemaker/authkey
+    fi
+    
     if [ -e /etc/corosync/corosync.conf ]; then
 	: Nothing to do
 
