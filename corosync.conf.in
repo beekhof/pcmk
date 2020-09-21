@@ -1,0 +1,33 @@
+totem {
+    version: 2
+    cluster_name: $CLUSTER_NAME
+    transport: knet
+    crypto_cipher: aes256
+    crypto_hash: sha256
+}
+
+nodelist {
+    node {
+        nodeid: 1
+        name: $NODE1NAME
+#        ring0_addr: $NODE1ADDR
+    }
+    node {
+        nodeid: 2
+        name: $NODE2NAME
+#        ring0_addr: $NODE2ADDR
+    }
+}
+
+quorum {
+    provider: corosync_votequorum
+}
+
+logging {
+    to_syslog: no
+    to_stderr: yes
+    to_logfile: yes
+    logfile_priority: debug
+    logfile: /var/log/cluster/corosync.log
+    timestamp: on
+}

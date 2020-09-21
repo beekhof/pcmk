@@ -27,7 +27,7 @@ EXPOSE 5410/udp
 EXPOSE 5411/udp
 EXPOSE 5412/udp
 
-ADD *.sh /root/
+ADD *.sh *.in /root/
 
 CMD ["/usr/lib/systemd/systemd", "--system"]
 #ENTRYPOINT /root/loop.sh
