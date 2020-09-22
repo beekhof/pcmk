@@ -4,7 +4,8 @@ USER root
 
 LABEL maintainer="abeekhof@redhat.com"
 
-RUN dnf install -y pcs which passwd findutils bind-utils gettext iputils initscripts chkconfig  && rm -rf /var/cache/yum
+RUN dnf search kubernetes
+RUN dnf install -y pcs which passwd findutils bind-utils kubernetes-client gettext iputils initscripts chkconfig && rm -rf /var/cache/yum
 
 RUN mkdir -p /etc/systemd/system-preset/
 RUN echo 'enable pcsd.service' > /etc/systemd/system-preset/00-pcsd.preset
@@ -28,6 +29,7 @@ EXPOSE 5411/udp
 EXPOSE 5412/udp
 
 ADD *.sh *.in /root/
+ADD k8sDeployment /usr/lib/ocf/resource.d/pacemaker
 
 CMD ["/usr/lib/systemd/systemd", "--system"]
 #ENTRYPOINT /root/loop.sh

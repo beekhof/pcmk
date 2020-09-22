@@ -1,0 +1,231 @@
+#!/usr/bin/sh
+#
+# ocf:pacemaker:k8sDeployment resource agent
+#
+# Original copyright 2004 SUSE LINUX AG, Lars Marowsky-Br<E9>e
+# Later changes copyright 2008-2019 the Pacemaker project contributors
+#
+# The version control history for this file may have further details.
+#
+# This source code is licensed under the GNU General Public License version 2
+# (GPLv2) WITHOUT ANY WARRANTY.
+
+
+#######################################################################
+# Initialization:
+
+: ${OCF_FUNCTIONS:="${OCF_ROOT}/resource.d/heartbeat/.ocf-shellfuncs"}
+. "${OCF_FUNCTIONS}"
+: ${__OCF_ACTION:="$1"}
+
+#######################################################################
+
+meta_data() {
+    cat <<END
+<?xml version="1.0"?>
+<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">
+<resource-agent name="Dummy" version="1.0">
+<version>1.0</version>
+
+<longdesc lang="en">
+This is a dummy OCF resource agent. It does absolutely nothing except keep track
+of whether it is running or not, and can be configured so that actions fail or
+take a long time. Its purpose is primarily for testing, and to serve as a
+template for resource agent writers.
+</longdesc>
+<shortdesc lang="en">Example stateless resource agent</shortdesc>
+
+<parameter name="args" unique="0">
+<longdesc lang="en">
+Additional arguments to pass to kubelet
+</longdesc>
+<shortdesc lang="en">Kubelet Arguments</shortdesc>
+<content type="string" default="" />
+</parameter>
+
+<parameter name="namespace" unique="1">
+<longdesc lang="en">
+Namespace in which the deployment to be controlled exists
+</longdesc>
+<shortdesc lang="en">Deployment Namespace</shortdesc>
+<content type="string" default="default" />
+</parameter>
+
+<parameter name="deployment" unique="1">
+<longdesc lang="en">
+Name of the deployment to be controlled
+</longdesc>
+<shortdesc lang="en">Deployment Name</shortdesc>
+<content type="string" default="" />
+</parameter>
+
+<parameter name="replica_min" unique="0">
+<longdesc lang="en">
+Number of replicas that are considered Passive mode
+</longdesc>
+<shortdesc lang="en">Replica Min</shortdesc>
+<content type="number" default="0" />
+</parameter>
+
+<parameter name="replica_max" unique="0">
+<longdesc lang="en">
+Number of replicas that are considered Active mode
+</longdesc>
+<shortdesc lang="en">Replica Max</shortdesc>
+<content type="number" default="1" />
+</parameter>
+
+</parameters>
+
+<actions>
+<action name="start"        timeout="20s" />
+<action name="stop"         timeout="20s" />
+<action name="monitor"      timeout="20s" interval="60s" depth="0"/>
+<action name="monitor"      timeout="20s" interval="120s" depth="1"/>
+<action name="reload"       timeout="20s" />
+<action name="validate-all" timeout="20s" />
+<action name="meta-data"    timeout="5s" />
+</actions>
+</resource-agent>
+END
+}
+
+#######################################################################
+
+# don't exit on TERM, to test that pacemaker-execd makes sure that we do exit
+trap sigterm_handler TERM
+sigterm_handler() {
+    ocf_log info "They use TERM to bring us down. No such luck."
+
+    # Since we're likely going to get KILLed, clean up any monitor
+    # serialization in progress, so the next probe doesn't return an error.
+    return
+}
+
+deploy_usage() {
+    cat <<END
+usage: $0 {start|stop|monitor|migrate_to|migrate_from|validate-all|meta-data}
+
+Expects to have a fully populated OCF RA-compliant environment set.
+END
+}
+
+deploy_reload() {
+    kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_max}
+    DS_RETVAL=$?
+    if [ $DS_RETVAL != 0 ]; then
+        ocf_exit_reason "kubectl failed: $DS_RETVAL"
+        return $OCF_ERR_GENERIC
+    fi
+    return $OCF_SUCCESS
+}
+
+deploy_start() {
+    deploy_monitor
+
+    DS_RETVAL=$?
+    if [ $DS_RETVAL -eq $OCF_SUCCESS ]; then
+        return $DS_RETVAL
+    fi
+
+    kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_max}
+    DS_RETVAL=$?
+    if [ $DS_RETVAL != 0 ]; then
+        ocf_exit_reason "kubectl failed: $DS_RETVAL"
+        return $OCF_ERR_GENERIC
+    fi
+    return $OCF_SUCCESS
+}
+
+deploy_stop() {
+    kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_min}
+    DS_RETVAL=$?
+    if [ $DS_RETVAL != 0 ]; then
+        ocf_exit_reason "kubectl failed: $DS_RETVAL"
+        return $OCF_ERR_GENERIC
+    fi
+    return $OCF_SUCCESS
+}
+
+deploy_monitor() {
+
+    READY=$(kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_min} | grep -v NAME | awk '{print $2}')
+    DS_RETVAL=$?
+    if [ $DS_RETVAL != 0 ]; then
+        ocf_exit_reason "kubectl failed: $DS_RETVAL"
+        return $OCF_ERR_GENERIC
+    fi
+
+    case "$OCF_CHECK_LEVEL" in
+        0)
+	    TARGET=$(echo $READY | cut -d/ -f2)
+	    if [ $TARGET = ${OCF_RESKEY_replica_min} ]; then
+		return $OCF_NOT_RUNNING
+	    elif [ $TARGET = ${OCF_RESKEY_replica_max} ]; then
+		return $OCF_SUCCESS
+	    else
+                ocf_exit_reason "Unexpected number of configured replicas: $TARGET"
+                return $OCF_ERR_GENERIC
+	    fi
+            ;;
+        *)
+	    TARGET=$(echo $READY | cut -d/ -f1)
+	    if [ $TARGET = ${OCF_RESKEY_replica_min} ]; then
+		return $OCF_NOT_RUNNING
+	    elif [ $TARGET = ${OCF_RESKEY_replica_max} ]; then
+		return $OCF_SUCCESS
+	    else
+                ocf_exit_reason "Unexpected number of active replicas: $TARGET"
+                return $OCF_ERR_GENERIC
+	    fi
+            ;;
+    esac
+}
+
+deploy_validate() {
+    if [ -z "$OCF_RESKEY_deployment" ]; then
+	exit $OCF_ERR_ARGS
+    fi
+
+    check_binary kubectl
+    return $OCF_SUCCESS
+}
+
+: ${OCF_RESKEY_namespace:="default"}
+: ${OCF_RESKEY_replica_min:=0}
+: ${OCF_RESKEY_replica_max:=1}
+: ${OCF_RESKEY_CRM_meta_interval:=0}
+: ${OCF_RESKEY_CRM_meta_globally_unique:="false"}
+
+if [ -z "$OCF_RESKEY_state" ]; then
+    OCF_RESKEY_state="${HA_VARRUN%%/}/Dummy-${OCF_RESOURCE_INSTANCE}.state"
+
+    if [ "${OCF_RESKEY_CRM_meta_globally_unique}" = "false" ]; then
+        # Strip off the trailing clone marker (note + is not portable in sed)
+        OCF_RESKEY_state=$(echo $OCF_RESKEY_state | sed s/:[0-9][0-9]*\.state/.state/)
+    fi
+fi
+
+case "$__OCF_ACTION" in
+meta-data)      meta_data
+                exit $OCF_SUCCESS
+                ;;
+start)          deploy_validate; deploy_start;;
+stop)           deploy_stop;;
+monitor)        deploy_monitor;;
+reload)         ocf_log err "Reloading..."
+                deploy_reload
+                ;;
+validate-all)   deploy_validate;;
+usage|help)     deploy_usage
+                exit $OCF_SUCCESS
+                ;;
+*)              deploy_usage
+                exit $OCF_ERR_UNIMPLEMENTED
+                ;;
+esac
+rc=$?
+ocf_log debug "${OCF_RESOURCE_INSTANCE} $__OCF_ACTION : $rc"
+exit $rc
+
+# vim: set filetype=sh expandtab tabstop=4 softtabstop=4 shiftwidth=4 textwidth=80:

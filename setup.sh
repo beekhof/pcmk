@@ -40,7 +40,7 @@ if [ $REMOTE_NODE = 0 ]; then
 	chown hacluster:haclient /etc/pacemaker/authkey
 	chmod 640 /etc/pacemaker/authkey
     fi
-    
+
     if [ -e /etc/corosync/corosync.conf ]; then
 	: Nothing to do
 
@@ -48,6 +48,7 @@ if [ $REMOTE_NODE = 0 ]; then
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
 	#pcs --debug cluster setup ${CLUSTER_NAME} ${NODE_ID} --corosync_conf /etc/corosync/corosync.conf
 	envsubst < /root/corosync.conf.in > /etc/corosync/corosync.conf
+	mkdir /etc/corosync/uidgid.d/    
     
     else
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
