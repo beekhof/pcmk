@@ -111,7 +111,7 @@ END
 }
 
 deploy_reload() {
-    kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_max}
+    ${KUBECTL} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_max}
     DS_RETVAL=$?
     if [ $DS_RETVAL != 0 ]; then
         ocf_exit_reason "kubectl failed: $DS_RETVAL"
@@ -128,7 +128,7 @@ deploy_start() {
         return $DS_RETVAL
     fi
 
-    kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_max}
+    ${KUBECTL} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_max}
     DS_RETVAL=$?
     if [ $DS_RETVAL != 0 ]; then
         ocf_exit_reason "kubectl failed: $DS_RETVAL"
@@ -138,7 +138,7 @@ deploy_start() {
 }
 
 deploy_stop() {
-    kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_min}
+    ${KUBECTL} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_min}
     DS_RETVAL=$?
     if [ $DS_RETVAL != 0 ]; then
         ocf_exit_reason "kubectl failed: $DS_RETVAL"
@@ -149,7 +149,7 @@ deploy_stop() {
 
 deploy_monitor() {
 
-    READY=$(kubectl ${OCF_RESKEY_args} -n ${OCF_RESKEY_namespace} scale deployment/${OCF_RESKEY_deployment} --replicas ${OCF_RESKEY_replica_min} | grep -v NAME | awk '{print $2}')
+    READY=$($KUBECTL get deployment/${OCF_RESKEY_deployment} | grep -v NAME | awk '{print $2}')
     DS_RETVAL=$?
     if [ $DS_RETVAL != 0 ]; then
         ocf_exit_reason "kubectl failed: $DS_RETVAL"
@@ -197,14 +197,8 @@ deploy_validate() {
 : ${OCF_RESKEY_CRM_meta_interval:=0}
 : ${OCF_RESKEY_CRM_meta_globally_unique:="false"}
 
-if [ -z "$OCF_RESKEY_state" ]; then
-    OCF_RESKEY_state="${HA_VARRUN%%/}/Dummy-${OCF_RESOURCE_INSTANCE}.state"
-
-    if [ "${OCF_RESKEY_CRM_meta_globally_unique}" = "false" ]; then
-        # Strip off the trailing clone marker (note + is not portable in sed)
-        OCF_RESKEY_state=$(echo $OCF_RESKEY_state | sed s/:[0-9][0-9]*\.state/.state/)
-    fi
-fi
+# pcs resource create nginx k8sDeployment deployment=nginx-deployment args="--insecure-skip-tls-verify -s https://192.168.126.10:6443"
+KUBECTL="kubectl --token $(cat /var/run/secrets/kubernetes.io/serviceaccount/token) -n ${OCF_RESKEY_namespace} ${OCF_RESKEY_args}"
 
 case "$__OCF_ACTION" in
 meta-data)      meta_data
