@@ -5,7 +5,7 @@ USER root
 LABEL maintainer="abeekhof@redhat.com"
 
 RUN dnf search kubernetes
-RUN dnf install -y pcs which passwd findutils bind-utils kubernetes-client gettext iputils initscripts chkconfig && rm -rf /var/cache/yum
+RUN dnf install -y pcs which passwd findutils bind-utils kubernetes-client gettext fence-agents-virsh fence-agents-redfish iputils initscripts chkconfig && rm -rf /var/cache/yum
 
 RUN mkdir -p /etc/systemd/system-preset/
 RUN echo 'enable pcsd.service' > /etc/systemd/system-preset/00-pcsd.preset
