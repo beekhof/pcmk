@@ -34,6 +34,7 @@ take a long time. Its purpose is primarily for testing, and to serve as a
 template for resource agent writers.
 </longdesc>
 <shortdesc lang="en">Example stateless resource agent</shortdesc>
+<parameters>
 
 <parameter name="args" unique="0">
 <longdesc lang="en">
@@ -64,7 +65,7 @@ Name of the deployment to be controlled
 Number of replicas that are considered Passive mode
 </longdesc>
 <shortdesc lang="en">Replica Min</shortdesc>
-<content type="number" default="0" />
+<content type="integer" default="0" />
 </parameter>
 
 <parameter name="replica_max" unique="0">
@@ -72,7 +73,7 @@ Number of replicas that are considered Passive mode
 Number of replicas that are considered Active mode
 </longdesc>
 <shortdesc lang="en">Replica Max</shortdesc>
-<content type="number" default="1" />
+<content type="integer" default="1" />
 </parameter>
 
 </parameters>
@@ -134,6 +135,14 @@ deploy_start() {
         ocf_exit_reason "kubectl failed: $DS_RETVAL"
         return $OCF_ERR_GENERIC
     fi
+
+    while [ 1 = 1 ]; do
+	OCF_CHECK_LEVEL=1 deploy_monitor
+	if [ $? = $OCF_SUCCESS ]; then
+	    return $OCF_SUCCESS
+	fi
+    done
+    
     return $OCF_SUCCESS
 }
 
@@ -144,6 +153,14 @@ deploy_stop() {
         ocf_exit_reason "kubectl failed: $DS_RETVAL"
         return $OCF_ERR_GENERIC
     fi
+
+    while [ 1 = 1 ]; do
+	OCF_CHECK_LEVEL=1 deploy_monitor
+	if [ $? = $OCF_NOT_RUNNING ]; then
+	    return $OCF_SUCCESS
+	fi
+    done
+
     return $OCF_SUCCESS
 }
 
@@ -164,7 +181,7 @@ deploy_monitor() {
 	    elif [ $TARGET = ${OCF_RESKEY_replica_max} ]; then
 		return $OCF_SUCCESS
 	    else
-                ocf_exit_reason "Unexpected number of configured replicas: $TARGET"
+                ocf_exit_reason "Unexpected number of configured replicas: $TARGET $READY"
                 return $OCF_ERR_GENERIC
 	    fi
             ;;
@@ -197,7 +214,6 @@ deploy_validate() {
 : ${OCF_RESKEY_CRM_meta_interval:=0}
 : ${OCF_RESKEY_CRM_meta_globally_unique:="false"}
 
-# pcs resource create nginx k8sDeployment deployment=nginx-deployment args="--insecure-skip-tls-verify -s https://192.168.126.10:6443"
 KUBECTL="kubectl --token $(cat /var/run/secrets/kubernetes.io/serviceaccount/token) -n ${OCF_RESKEY_namespace} ${OCF_RESKEY_args}"
 
 case "$__OCF_ACTION" in
