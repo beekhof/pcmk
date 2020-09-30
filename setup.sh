@@ -31,7 +31,7 @@ fi
 
 if [ $REMOTE_NODE = 0 ]; then
 
-    mkdir -p /etc/corosync/uidgid.d/
+    mkdir -p /etc/corosync/uidgid.d/ /var/lib/pacemaker/cib/ /var/lib/pacemaker/cib/pengine/
     
     target=/etc/corosync/authkey
     cp /etc/secret-volume/authkey $target
@@ -47,6 +47,10 @@ if [ $REMOTE_NODE = 0 ]; then
     cp /etc/secret-volume/fencekey $target
     chown root:root $target
     chmod 640 $target
+
+    target=/var/lib/pacemaker/
+    chown -R hacluster:haclient $target
+    chmod -R 750 $target
     
     if [ -e /etc/corosync/corosync.conf ]; then
 	: Nothing to do
