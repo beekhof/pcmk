@@ -8,10 +8,12 @@ set -x
 [ -e /etc/sysconfig/pcsd ] && . /etc/sysconfig/pcsd
 
 : ${CLUSTER_NAME="redhat"}
-: ${CLUSTER_PASS="redhat"}
 : ${REMOTE_NODE=0}
 
-echo ${CLUSTER_PASS} | passwd --stdin hacluster
+if [ ! -d /etc/secret-volume/ ]; then
+    exit 1
+fi
+cat /etc/secret-volume/passord | passwd --stdin hacluster
 
 export GEM_HOME=/usr/lib/pcsd/vendor/bundle/ruby
 /usr/lib/pcsd/pcsd &
@@ -29,18 +31,23 @@ fi
 
 if [ $REMOTE_NODE = 0 ]; then
 
-    if [ ! -e /etc/corosync/authkey ]; then
-	echo $CLUSTER_AUTHKEY > /etc/corosync/authkey
-	chown root:root /etc/corosync/authkey
-	chmod 400 /etc/corosync/authkey
-    fi
+    mkdir -p /etc/corosync/uidgid.d/
+    
+    target=/etc/corosync/authkey
+    cp /etc/secret-volume/authkey $target
+    chown root:root $target
+    chmod 400 $target
 
-    if [ ! -e /etc/pacemaker/authkey ]; then
-	echo $CLUSTER_AUTHKEY > /etc/pacemaker/authkey
-	chown hacluster:haclient /etc/pacemaker/authkey
-	chmod 640 /etc/pacemaker/authkey
-    fi
+    target=/etc/pacemaker/authkey
+    cp /etc/secret-volume/authkey $target
+    chown hacluster:haclient $target
+    chmod 640 $target
 
+    target=/etc/pacemaker/xvmkey
+    cp /etc/secret-volume/fencekey $target
+    chown root:root $target
+    chmod 640 $target
+    
     if [ -e /etc/corosync/corosync.conf ]; then
 	: Nothing to do
 
@@ -48,7 +55,6 @@ if [ $REMOTE_NODE = 0 ]; then
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
 	#pcs --debug cluster setup ${CLUSTER_NAME} ${NODE_ID} --corosync_conf /etc/corosync/corosync.conf
 	envsubst < /root/corosync.conf.in > /etc/corosync/corosync.conf
-	mkdir /etc/corosync/uidgid.d/    
     
     else
 	pcs host auth ${NODE_ID} addr=${NODE_IP} -u hacluster -p ${CLUSTER_PASS}
