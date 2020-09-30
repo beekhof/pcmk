@@ -10,10 +10,13 @@ set -x
 : ${CLUSTER_NAME="redhat"}
 : ${REMOTE_NODE=0}
 
+
 if [ ! -d /etc/secret-volume/ ]; then
     exit 1
 fi
-cat /etc/secret-volume/passord | passwd --stdin hacluster
+
+CLUSTER_PASS=$(cat /etc/secret-volume/password)
+echo ${CLUSTER_PASS} | passwd --stdin hacluster
 
 export GEM_HOME=/usr/lib/pcsd/vendor/bundle/ruby
 /usr/lib/pcsd/pcsd &
