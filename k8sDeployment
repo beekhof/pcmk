@@ -79,11 +79,11 @@ Number of replicas that are considered Active mode
 </parameters>
 
 <actions>
-<action name="start"        timeout="20s" />
-<action name="stop"         timeout="20s" />
-<action name="monitor"      timeout="20s" interval="60s" depth="0"/>
-<action name="monitor"      timeout="20s" interval="120s" depth="1"/>
-<action name="reload"       timeout="20s" />
+<action name="start"        timeout="120s" />
+<action name="stop"         timeout="120s" />
+<action name="monitor"      timeout="60s" interval="60s" depth="0"/>
+<action name="monitor"      timeout="60s" interval="120s" depth="1"/>
+<action name="reload"       timeout="120s" />
 <action name="validate-all" timeout="20s" />
 <action name="meta-data"    timeout="5s" />
 </actions>
